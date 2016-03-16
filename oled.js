@@ -45,6 +45,9 @@ var Oled = function(opts) {
   this.buffer.fill(0x00);
 
   this.dirtyBytes = [];
+  for(var i = 0; i<this.buffer.length;i++) { 
+    this.dirtyBytes.push(i); 
+  }
 
   var config = {
     '128x32': {
@@ -97,7 +100,7 @@ Oled.prototype._initialise = function() {
   ];
 
   var i, initSeqLen = initSeq.length;
-
+  console.log("======> this.wire : ",  this.wire); 
   // write init seq commands
   for (i = 0; i < initSeqLen; i ++) {
     this._transfer('cmd', initSeq[i]);
@@ -117,11 +120,12 @@ Oled.prototype._transfer = function(type, val, fn) {
 
   // send control and actual val
   // this.board.io.i2cWrite(this.ADDRESS, [control, val]);
-  this.wire.writeByte(control, function(err) {
-    this.wire.writeByte(val, function(err) {
-      fn();
-    });
-  });
+  //this.wire.writeByte(control, function(err) {
+  //  this.wire.writeByte(val, function(err) {
+  //    fn();
+  //  });
+  //});
+  this.wire.writeBytes(control, [val], function(err) {});
 }
 
 // read a byte from the oled
@@ -299,6 +303,10 @@ Oled.prototype.update = function() {
   }.bind(this));
 }
 
+Oled.prototype.update2 = function () { 
+	this._updateDirtyBytes(this.dirtyBytes);
+}
+
 // send dim display command to oled
 Oled.prototype.dimDisplay = function(bool) {
   var contrast;
@@ -327,7 +335,7 @@ Oled.prototype.turnOnDisplay = function() {
 Oled.prototype.clearDisplay = function(sync) {
   var immed = (typeof sync === 'undefined') ? true : sync;
   // write off pixels
-  //this.buffer.fill(0x00);
+  this.buffer.fill(0x00);
   for (var i = 0; i < this.buffer.length; i += 1) {
     if (this.buffer[i] !== 0x00) {
       this.buffer[i] = 0x00;
@@ -378,7 +386,7 @@ Oled.prototype.drawPixel = function(pixels, sync) {
   pixels.forEach(function(el) {
     // return if the pixel is out of range
     var x = el[0], y = el[1], color = el[2];
-    if (x > this.WIDTH || y > this.HEIGHT) return;
+    if (x >= this.WIDTH || y >= this.HEIGHT) return;
 
     // thanks, Martin Richards.
     // I wanna can this, this tool is for devs who get 0 indexes
